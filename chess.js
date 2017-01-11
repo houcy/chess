@@ -276,7 +276,7 @@ class Chess {
         assert(
             piece != EMPTY &&
             piece != undefined &&
-            piece.type == ROOK &&
+            piece.type == QUEEN &&
             piece.player == this.player);
 
         var coords = [];
@@ -309,6 +309,42 @@ class Chess {
             new Coordinate(begin.row - 1, begin.col + 2),
             new Coordinate(begin.row + 1, begin.col - 2),
             new Coordinate(begin.row - 1, begin.col - 2)
+        ];
+
+        var moves = [];
+
+        for (var i = 0; i < ends.length; i++) {
+            var end = ends[i];
+            var endPiece = this.getSqaure(end);
+            if (endPiece != undefined &&
+                (endPiece == EMPTY || endPiece.player == this.getOpponent())) {
+                var move = new Move(begin, end, piece, endPiece, GAME_NOT_OVER);
+                moves.push(move);
+            }
+        }
+
+        return moves;
+    }
+
+    // TODO: prevent king from moving into check
+    getPossibleMovesKing(begin) {
+        var piece = this.getSqaure(begin);
+
+        assert(
+            piece != EMPTY &&
+            piece != undefined &&
+            piece.type == KING &&
+            piece.player == this.player);
+
+        var ends = [
+            new Coordinate(begin.row + 0, begin.col + 1),
+            new Coordinate(begin.row + 0, begin.col - 1),
+            new Coordinate(begin.row + 1, begin.col + 1),
+            new Coordinate(begin.row + 1, begin.col),
+            new Coordinate(begin.row + 1, begin.col - 1),
+            new Coordinate(begin.row - 1, begin.col + 1),
+            new Coordinate(begin.row - 1, begin.col),
+            new Coordinate(begin.row - 1, begin.col - 1)
         ];
 
         var moves = [];
@@ -404,14 +440,18 @@ class Chess {
         // TODO, pawn captures, and set game state for en passant
         if (piece.type == PAWN) {
             return this.getPossibleMovesPawn(coord);
-        } if (piece.type == BISHOP) {
+        } else if (piece.type == BISHOP) {
             return this.getPossibleMovesBishop(coord);
-        } if (piece.type == ROOK) {
+        } else if (piece.type == ROOK) {
             return this.getPossibleMovesRook(coord);
-        } if (piece.type == QUEEN) {
+        } else if (piece.type == QUEEN) {
             return this.getPossibleMovesQueen(coord);
-        } if (piece.type == KNIGHT) {
+        } else if (piece.type == KNIGHT) {
             return this.getPossibleMovesKnight(coord);
+        } else if (piece.type == KING) {
+            return this.getPossibleMovesKing(coord);
+        } else {
+            assert(false);
         }
 
         return moves;
