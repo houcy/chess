@@ -54,11 +54,14 @@ class Coordinate {
     constructor(row, col) {
         this.row = row;
         this.col = col;
-        Object.freeze(this);
     }
 
     equals(coord) {
         return this.row == coord.row && this.col == coord.col;d
+    }
+
+    deepCopy() {
+        return new Coordinate(this.row, this.col);
     }
 }
 
@@ -71,8 +74,8 @@ class PlayerCoordinate {
 }
 
 class Piece {
-    constructor(pieceId, player) {
-        this.pieceId = pieceId;
+    constructor(type, player) {
+        this.type = type;
         this.player = player;
         Object.freeze(this);
     }
@@ -136,9 +139,8 @@ class GameOver {
  ******************************************************************************/
 class Chess {
 
-    // TODO: use
-    static getOpponent(player) {
-        if (player == PLAYER_ONE) {
+    getOpponent() {
+        if (this.player == PLAYER_ONE) {
             return PLAYER_TWO;
         } else {
             return PLAYER_ONE;
@@ -174,17 +176,98 @@ class Chess {
         return newGame;
     }
 
-    getSqaure(row, col) {
-        if (!(row >= 0 && row < this.numRows &&
-               col >= 0 && col < this.numCols)) {
-            return undefined;
+    getSqaure(coord) {
+        if (coord.row >= 0 && coord.row < this.numRows &&
+            coord.col >= 0 && coord.col < this.numCols) {
+            return this.matrix[coord.row][coord.col];
         } else {
-            return this.matrix[row][col];
+            return undefined;
         }
     }
 
     isMoveValid(move) {
         return false;
+    }
+
+
+    // Returns an array of coordinates (excluding coord), that are empty
+    // and along the direction of dr, dc.
+    //
+    // TODO: better documentation
+    consecutiveEmptySquares(coord, dr, dc) {
+        var squares = [];
+
+        coord.row += dr;
+        coord.col += dc;
+
+        while(this.getSqaure(coord) == EMPTY) {
+            var newCoord = coor.deepCopy();
+            squares.push(newCoord);
+            coord.row += dr;
+            coord.col += dc;       
+        }
+
+        var lastSquare = this.getSqaure(coord);
+        if (lastSquare != EMPTY && lastSquare.player == this.getOpponent()) {
+            squares.push(lastSquare);
+        }
+
+        return squares;
+
+    }
+
+    // assuming there is a pawn at coord, is it in its homerow
+    pawnHomeRow(coord) {
+        var piece = this.getSqaure(coord);
+
+        assert(
+            piece != EMPTY &&
+            piece != undefined &&
+            piece.type == PAWN);
+
+        if (piece.player == UP_PLAYER) {
+            return coord.row == this.numRows - 2;
+        } else {
+            return coord.row == 1;
+        }
+    }
+
+    getPossibleMoves(coord) {
+        var piece = this.getSqaure(coord);
+
+        if (piece == EMPTY) {
+            return [];
+        }
+
+        var moves = [];
+
+        // TODO, pawn captures, and set game state for en passant
+        if (piece.type == PAWN) {
+            var dr;
+            if (this.player == UP_PLAYER) {
+                dr = -1;
+            } else if (this.player == DOWN_PLAYER) {
+                dr = 1;
+            } else {
+                assert(false);
+            }
+
+            var homeRow = this.pawnHomeRow(coord);
+
+            // move forward one
+            coord.row += dr;
+            if (this.getSqaure(coord) == EMPTY) {
+                moves.push(coord.deepCopy());
+
+                // move forward two
+                coord.row += dr;
+                if (homeRow && this.getSqaure(coord) == EMPTY) {
+                    moves.push(coord.deepCopy());
+                }
+            }
+        }
+
+        return moves;
     }
 
     makeMove(move) {
@@ -353,17 +436,17 @@ class Viz {
         }
 
         var pieceStr;
-        if (piece.pieceId == PAWN) {
+        if (piece.type == PAWN) {
             pieceStr = "pawn";
-        } else if (piece.pieceId == ROOK) {
+        } else if (piece.type == ROOK) {
             pieceStr = "rook";
-        } else if (piece.pieceId == KNIGHT) {
+        } else if (piece.type == KNIGHT) {
             pieceStr = "knight";
-        } else if (piece.pieceId == BISHOP) {
+        } else if (piece.type == BISHOP) {
             pieceStr = "bishop";
-        } else if (piece.pieceId == QUEEN) {
+        } else if (piece.type == QUEEN) {
             pieceStr = "queen";
-        } else if (piece.pieceId == KING) {
+        } else if (piece.type == KING) {
             pieceStr = "king";
         }
 
