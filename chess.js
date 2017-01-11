@@ -30,12 +30,12 @@ PLAYER_COLOR = {
     2: "Black"
 }
 
-KING = 1;
-QUEEN = 2;
-BISHOP = 3;
-ROOK = 4;
-KNIGHT = 5;
-PAWN = 6;
+KING = "King";
+QUEEN = "Queen";
+BISHOP = "Bishop";
+ROOK = "Rook";
+KNIGHT = "Knight";
+PAWN = "Pawn";
 
 MAXIMIZING_PLAYER = PLAYER_ONE;
 MINIMIZING_PLAYER = PLAYER_TWO;
@@ -94,14 +94,16 @@ var INIT_POSITION = [
 Object.freeze(INIT_POSITION);
 
 /*******************************************************************************
- * Move is the interface between Chess and Viz
+ * Move is the interface between Chess and Viz TODO better description
  ******************************************************************************/
 class Move {
-    constructor(begin, end, piece, gameOver) {
+    constructor(begin, end, movePiece, capturePiece, gameOver) {
         this.begin = begin;
         this.end = end;
-        this.piece = piece;
+        this.movePiece = movePiece;
+        this.capturePiece = capturePiece;
         this.gameOver = gameOver;
+        Object.freeze(this);
     }
 }
 
@@ -242,7 +244,7 @@ class Chess {
             piece.player == this.player);
 
         var moves = [];
-
+        var begin = coord.deepCopy();
         var dr;
 
         if (this.player == UP_PLAYER) {
@@ -258,12 +260,16 @@ class Chess {
         // move forward one
         coord.row += dr;
         if (this.getSqaure(coord) == EMPTY) {
-            moves.push(coord.deepCopy());
+            var end = coord.deepCopy();
+            var move = new Move(begin, end, piece, undefined, undefined);
+            moves.push(move);
 
             // move forward two
             coord.row += dr;
             if (homeRow && this.getSqaure(coord) == EMPTY) {
-                moves.push(coord.deepCopy());
+                var end = coord.deepCopy();
+                var move = new Move(begin, end, piece, undefined, undefined);
+                moves.push(move);
             }
         }
 
