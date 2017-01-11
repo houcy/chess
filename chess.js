@@ -55,8 +55,7 @@ class Coordinate {
     }
 
     equals(coord) {
-        return
-            this.row == coord.row &&
+        return this.row == coord.row &&
             this.col == coord.col;
     }
 
@@ -73,8 +72,7 @@ class Piece {
     }
 
     equals(piece) {
-        return
-            this.type == piece.type &&
+        return this.type == piece.type &&
             this.player == piece.player;
     }
 }
@@ -107,8 +105,7 @@ class Move {
     }
 
     equals(move) {
-        return
-            this.begin.equals(move.begin) &&
+        return this.begin.equals(move.begin) &&
             this.end.equals(move.end) &&
             this.movePiece.equals(move.movePiece) &&
             this.capturePiece.equals(move.capturePiece) &&
@@ -134,8 +131,7 @@ class GameOver {
     }
 
     equals(gameOver) {
-        return
-            this.gameEnded == gameOver.gameEnded &&
+        return this.gameEnded == gameOver.gameEnded &&
             this.draw == gameOver.draw &&
             this.victor == gameOver.victor;
     }
@@ -176,7 +172,9 @@ class Chess {
 
         this.player = player;
 
-        this.gameOver = undefined;
+        this.gameOver = GAME_NOT_OVER;
+
+        this.checkGameOver();
     }
 
     deepCopy() {
@@ -317,6 +315,18 @@ class Chess {
 
     makeMove(move) {
         assert(this.isMoveValid(move));
+
+        this.matrix[move.begin.row][move.begin.col] = EMPTY;
+        this.matrix[move.end.row][move.end.col] = move.movePiece;
+
+        this.checkGameOver();
+
+        return new Move(
+            move.begin,
+            move.end,
+            move.movePiece,
+            move.capturePiece,
+            this.gameOver);
     }
 
     checkGameOver() {
@@ -546,7 +556,7 @@ class Viz {
 
         if (possibleMoves != undefined) {
             for (var i = 0; i < possibleMoves.length; i++) {
-                VIZ.undoDrawSuggestion(possibleMoves[i]);
+                VIZ.undoDrawSuggestion(possibleMoves[i].end);
             }
         }
 
@@ -703,7 +713,7 @@ function cellClick(row, col) {
                 var resultMove = GAME.makeMove(move);
                 VIZ.drawMove(resultMove, POSSIBLE_MOVES);
 
-                if (resultMove.gameOver != undefined) {
+                if (resultMove.gameOver.gameEnded) {
                     var color = PLAYER_COLOR[resultMove.gameOver.victor];
                     alert("Player " + color + " wins!");
                 } else {
@@ -742,27 +752,28 @@ function cellClick(row, col) {
     if (madeMove) {
         POSSIBLE_MOVES = undefined;
         SELECT_PIECE_CELL = undefined;
-    }
+    } else {
 
-    var possibleMoves = GAME.getPossibleMoves(coord);
+        var possibleMoves = GAME.getPossibleMoves(coord);
 
-    if (possibleMoves.length > 0) {
+        if (possibleMoves.length > 0) {
 
-        if (SELECT_PIECE_CELL != undefined) {
-            VIZ.undoDrawSelectPiece(SELECT_PIECE_CELL);
-            
-            // But doesn't this operate off of the new possibleMoves?
-            for (var i = 0; i < POSSIBLE_MOVES.length; i++) {
-                VIZ.undoDrawSuggestion(POSSIBLE_MOVES[i].end);
+            if (SELECT_PIECE_CELL != undefined) {
+                VIZ.undoDrawSelectPiece(SELECT_PIECE_CELL);
+                
+                // But doesn't this operate off of the new possibleMoves?
+                for (var i = 0; i < POSSIBLE_MOVES.length; i++) {
+                    VIZ.undoDrawSuggestion(POSSIBLE_MOVES[i].end);
+                }
             }
-        }
-        
-        SELECT_PIECE_CELL = coord;
-        POSSIBLE_MOVES = possibleMoves;
-        VIZ.drawSelectPiece(SELECT_PIECE_CELL);
+            
+            SELECT_PIECE_CELL = coord;
+            POSSIBLE_MOVES = possibleMoves;
+            VIZ.drawSelectPiece(SELECT_PIECE_CELL);
 
-        for (var i = 0; i < POSSIBLE_MOVES.length; i++) {
-            VIZ.drawSuggestion(POSSIBLE_MOVES[i].end);
+            for (var i = 0; i < POSSIBLE_MOVES.length; i++) {
+                VIZ.drawSuggestion(POSSIBLE_MOVES[i].end);
+            }
         }
     }
 }
