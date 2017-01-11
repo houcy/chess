@@ -241,6 +241,8 @@ class Chess {
             piece.type == PAWN &&
             piece.player == this.player);
 
+        var moves = [];
+
         var dr;
 
         if (this.player == UP_PLAYER) {
@@ -264,6 +266,8 @@ class Chess {
                 moves.push(coord.deepCopy());
             }
         }
+
+        return moves;
     }
 
     getPossibleMoves(coord) {
@@ -279,7 +283,7 @@ class Chess {
 
         // TODO, pawn captures, and set game state for en passant
         if (piece.type == PAWN) {
-            return getPossibleMovesPawn(coord);
+            return this.getPossibleMovesPawn(coord);
         }
 
         return moves;
@@ -664,6 +668,14 @@ if (FIRST_PLAYER == COMPUTER_PLAYER) {
 
 
 function cellClick(row, col) {
+    if (GAME.player != HUMAN_PLAYER) {
+        return;
+    }
+
+    var coord = new Coordinate(row, col);
+
+    console.log(GAME.getPossibleMoves(coord));
+
 
 }
 
