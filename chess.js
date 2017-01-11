@@ -210,26 +210,47 @@ class Chess {
     // and along the direction of dr, dc.
     //
     // TODO: better documentation
-    consecutiveEmptySquares(coord, dr, dc) {
-        var squares = [];
+    consecutiveEmptySquares(begin, movepiece, dr, dc) {
+        var moves = [];
 
-        coord.row += dr;
-        coord.col += dc;
+        var end = begin.deepCopy();
 
-        while(this.getSqaure(coord) == EMPTY) {
-            var newCoord = coor.deepCopy();
-            squares.push(newCoord);
-            coord.row += dr;
-            coord.col += dc;       
+        end.row += dr;
+        end.col += dc;
+
+        while(this.getSqaure(end) == EMPTY) {
+            var endCopy = end.deepCopy();
+            var move = new Move(begin, endCopy, movepiece, EMPTY, GAME_NOT_OVER);
+            moves.push(move);
+            end.row += dr;
+            end.col += dc;       
         }
 
-        var lastSquare = this.getSqaure(coord);
-        if (lastSquare != EMPTY && lastSquare.player == this.getOpponent()) {
-            squares.push(lastSquare);
+        var lastSquare = this.getSqaure(end);
+        if (lastSquare != undefined && lastSquare.player == this.getOpponent()) {
+            var endCopy = end.deepCopy();
+            var move = new Move(begin, endCopy, movepiece, lastSquare, GAME_NOT_OVER);
+            moves.push(move);
         }
 
-        return squares;
+        return moves;
+    }
 
+    getPossibleMovesBishop(coord) {
+        var piece = this.getSqaure(coord);
+
+        assert(
+            piece != EMPTY &&
+            piece != undefined &&
+            piece.type == BISHOP &&
+            piece.player == this.player);
+
+        var coords = [];
+
+        return this.consecutiveEmptySquares(coord, piece, -1, -1)
+            .concat(this.consecutiveEmptySquares(coord, piece, -1, 1))
+            .concat(this.consecutiveEmptySquares(coord, piece, 1, -1))
+            .concat(this.consecutiveEmptySquares(coord, piece, 1, 1));        
     }
 
     // assuming there is a pawn at coord, is it in its homerow?
@@ -308,6 +329,8 @@ class Chess {
         // TODO, pawn captures, and set game state for en passant
         if (piece.type == PAWN) {
             return this.getPossibleMovesPawn(coord);
+        } if (piece.type == BISHOP) {
+            return this.getPossibleMovesBishop(coord);
         }
 
         return moves;
