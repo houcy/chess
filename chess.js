@@ -291,6 +291,43 @@ class Chess {
             .concat(this.consecutiveEmptySquares(coord, piece, 0, 1));        
     }
 
+    getPossibleMovesKnight(begin) {
+        var piece = this.getSqaure(begin);
+
+        assert(
+            piece != EMPTY &&
+            piece != undefined &&
+            piece.type == KNIGHT &&
+            piece.player == this.player);
+
+        var ends = [
+            new Coordinate(begin.row + 2, begin.col + 1),
+            new Coordinate(begin.row + 2, begin.col - 1),
+            new Coordinate(begin.row - 2, begin.col + 1),
+            new Coordinate(begin.row - 2, begin.col - 1),
+            new Coordinate(begin.row + 1, begin.col + 2),
+            new Coordinate(begin.row - 1, begin.col + 2),
+            new Coordinate(begin.row + 1, begin.col - 2),
+            new Coordinate(begin.row - 1, begin.col - 2)
+        ];
+
+        var moves = [];
+
+        for (var i = 0; i < ends.length; i++) {
+            var end = ends[i];
+            var endPiece = this.getSqaure(end);
+            if (endPiece != undefined &&
+                (endPiece == EMPTY || endPiece.player == this.getOpponent())) {
+                var move = new Move(begin, end, piece, endPiece, GAME_NOT_OVER);
+                moves.push(move);
+            }
+        }
+
+        return moves;
+
+
+    }
+
     // assuming there is a pawn at coord, is it in its homerow?
     pawnHomeRow(coord) {
         var piece = this.getSqaure(coord);
@@ -373,6 +410,8 @@ class Chess {
             return this.getPossibleMovesRook(coord);
         } if (piece.type == QUEEN) {
             return this.getPossibleMovesQueen(coord);
+        } if (piece.type == KNIGHT) {
+            return this.getPossibleMovesKnight(coord);
         }
 
         return moves;
