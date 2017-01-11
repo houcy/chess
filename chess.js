@@ -30,6 +30,13 @@ PLAYER_COLOR = {
     2: "Black"
 }
 
+KING = 1;
+QUEEN = 2;
+BISHOP = 3;
+ROOK = 4;
+KNIGHT = 5;
+PAWN = 6;
+
 MAXIMIZING_PLAYER = PLAYER_ONE;
 MINIMIZING_PLAYER = PLAYER_TWO;
 
@@ -37,6 +44,10 @@ FIRST_PLAYER = PLAYER_ONE;
 
 HUMAN_PLAYER = PLAYER_ONE; 
 COMPUTER_PLAYER = PLAYER_TWO;
+
+BLACK = PLAYER_TWO;
+WHITE = PLAYER_ONE;
+
 
 // Todo hline of stars
 class Coordinate {
@@ -55,22 +66,38 @@ class PlayerCoordinate {
     constructor(player, coord) {
         this.player = player;
         this.coord = coord;
+        Object.freeze(this);
     }
 }
 
+class Piece {
+    constructor(pieceId, player) {
+        this.pieceId = pieceId;
+        this.player = player;
+        Object.freeze(this);
+    }
+}
+
+var INIT_POSITION = [
+    [new Piece(ROOK, BLACK), new Piece(KNIGHT, BLACK), new Piece(BISHOP, BLACK), new Piece(QUEEN, BLACK), new Piece(KING, BLACK), new Piece(BISHOP, BLACK), new Piece(KNIGHT, BLACK), new Piece(ROOK, BLACK)],
+    [new Piece(PAWN, BLACK), new Piece(PAWN, BLACK), new Piece(PAWN, BLACK), new Piece(PAWN, BLACK), new Piece(PAWN, BLACK), new Piece(PAWN, BLACK), new Piece(PAWN, BLACK), new Piece(PAWN, BLACK)],
+    [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+    [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+    [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+    [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+    [new Piece(PAWN, WHITE), new Piece(PAWN, WHITE), new Piece(PAWN, WHITE), new Piece(PAWN, WHITE), new Piece(PAWN, WHITE), new Piece(PAWN, WHITE), new Piece(PAWN, WHITE), new Piece(PAWN, WHITE)],
+    [new Piece(ROOK, WHITE), new Piece(KNIGHT, WHITE), new Piece(BISHOP, WHITE), new Piece(QUEEN, WHITE), new Piece(KING, WHITE), new Piece(BISHOP, WHITE), new Piece(KNIGHT, WHITE), new Piece(ROOK, WHITE)],
+]
+Object.freeze(INIT_POSITION);
+
 /*******************************************************************************
- * Move is the interface between Checkers and Viz
+ * Move is the interface between Chess and Viz
  ******************************************************************************/
 class Move {
-    // TODO: document
-    // todo switch to begin and end instead of coordBegin...
-    // to change jumpOver to jumped
-    constructor(coordBegin, coordEnd, jumpOver, player, king, gameOver) {
-        this.coordBegin = coordBegin;
-        this.coordEnd = coordEnd;
-        this.jumpOver = jumpOver;
-        this.player = player;
-        this.king = king;
+    constructor(begin, end, piece, gameOver) {
+        this.begin = begin;
+        this.end = end;
+        this.piece = piece;
         this.gameOver = gameOver;
     }
 }
@@ -104,32 +131,10 @@ class GameOver {
     }
 }
 
-
 /*******************************************************************************
- * Cell class
+ * Chess class
  ******************************************************************************/
-class Cell {
-    // player == PLAYER_ONE or
-    // player == PLAYER_TWO or
-    // player == EMPTY or
-    // player == undefined, which means out of bounds
-    constructor(player, king) {
-        this.player = player;
-        this.king = king;
-    }
-
-    deepCopy() {
-        var newCell = new Cell(this.player, this.king);
-        return newCell;
-    }
-}
-
-OOB_CELL = new Cell(undefined, false);
-
-/*******************************************************************************
- * Checkers class
- ******************************************************************************/
-class Checkers {
+class Chess {
 
     // TODO: use
     static getOpponent(player) {
@@ -140,529 +145,54 @@ class Checkers {
         }
     }
 
-    getJumpUpLeft(begin) {
-        var opponent = Checkers.getOpponent(this.player);
-        if (this.getCell(begin.row - 1, begin.col - 1).player == opponent &&
-            this.getCell(begin.row - 2, begin.col - 2).player == EMPTY) {
-            var jumpedOver = new Coordinate(begin.row - 1, begin.col - 1);
-            var end = new Coordinate(begin.row - 2, begin.col - 2);
-            var king = this.getCell(begin.row, begin.col).king;
-            var move = new Move(begin, end, jumpedOver, this.player, king, undefined);
-            return [move];
-        } else {
-            return [];
-        }
-    }
+    constructor(player, initPosition = INIT_POSITION) {
 
-    getJumpUpRight(begin) {
-        var opponent = Checkers.getOpponent(this.player);
-        if (this.getCell(begin.row - 1, begin.col + 1).player == opponent &&
-            this.getCell(begin.row - 2, begin.col + 2).player == EMPTY) {
-            var jumpedOver = new Coordinate(begin.row - 1, begin.col + 1);
-            var end = new Coordinate(begin.row - 2, begin.col + 2);
-            var king = this.getCell(begin.row, begin.col).king;
-            var move = new Move(begin, end, jumpedOver, this.player, king, undefined);
-            return [move];
-        } else {
-            return [];
-        }
-    }
+        this.numRows = initPosition.length;
+        this.numCols = initPosition[0].length;        
 
-    getJumpDownLeft(begin) {
-        var opponent = Checkers.getOpponent(this.player);
-        if (this.getCell(begin.row + 1, begin.col - 1).player == opponent &&
-            this.getCell(begin.row + 2, begin.col - 2).player == EMPTY) {
-            var jumpedOver = new Coordinate(begin.row + 1, begin.col - 1);
-            var end = new Coordinate(begin.row + 2, begin.col - 2);
-            var king = this.getCell(begin.row, begin.col).king;
-            var move = new Move(begin, end, jumpedOver, this.player, king, undefined);
-            return [move];
-        } else {
-            return [];
-        }
-    }
+        assert(this.numRows % 2 == 0);
+        assert(this.numCols % 2 == 0);
 
-    getJumpDownRight(begin) {
-        var opponent = Checkers.getOpponent(this.player);
-        if (this.getCell(begin.row + 1, begin.col + 1).player == opponent &&
-            this.getCell(begin.row + 2, begin.col + 2).player == EMPTY) {
-            var jumpedOver = new Coordinate(begin.row + 1, begin.col + 1);
-            var end = new Coordinate(begin.row + 2, begin.col + 2);
-            var king = this.getCell(begin.row, begin.col).king;
-            var move = new Move(begin, end, jumpedOver, this.player, king, undefined);
-            return [move];
-        } else {
-            return [];
-        }
-    }
-
-    // TODO: simplify with drdc
-    getMoveUpLeft(coord) {
-        if (this.getCell(coord.row - 1, coord.col - 1).player == EMPTY) {
-            var newCoord = new Coordinate(coord.row - 1, coord.col - 1);
-            var king = this.getCell(coord.row, coord.col).king;
-            var move = new Move(coord, newCoord, undefined, this.player, king, undefined);
-            return [move];
-        } else {
-            return [];
-        }
-    }
-
-    getMoveUpRight(coord) {
-        if (this.getCell(coord.row - 1, coord.col + 1).player == EMPTY) {
-            var newCoord = new Coordinate(coord.row - 1, coord.col + 1);
-            var king = this.getCell(coord.row, coord.col).king;
-            var move = new Move(coord, newCoord, undefined, this.player, king, undefined);
-            return [move];
-        } else {
-            return [];
-        }
-    }
-
-    getMoveDownLeft(coord) {
-        if (this.getCell(coord.row + 1, coord.col - 1).player == EMPTY) {
-            var newCoord = new Coordinate(coord.row + 1, coord.col - 1);
-            var king = this.getCell(coord.row, coord.col).king;
-            var move = new Move(coord, newCoord, undefined, this.player, king, undefined);
-            return [move];
-        } else {
-            return [];
-        }
-    }
-
-    getMoveDownRight(coord) {
-        if (this.getCell(coord.row + 1, coord.col + 1).player == EMPTY) {
-            var newCoord = new Coordinate(coord.row + 1, coord.col + 1);
-            var king = this.getCell(coord.row, coord.col).king;
-            var move = new Move(coord, newCoord, undefined, this.player, king, undefined);
-            return [move];
-        } else {
-            return [];
-        }
-    }
-
-    // Returns true if this.player has at least one jump available
-    availableJump() {
-
-        for (var row = 0; row < this.numRows; row++) {
-            for (var col = 0 ; col < this.numCols; col++) {
-                var coord = new Coordinate(row, col);
-                var cell = this.matrix[row][col];
-
-                if (cell.player == this.player) {
-
-                    var jumps = [];
-
-                    if (this.player == UP_PLAYER || cell.king) {
-                        jumps = jumps
-                            .concat(this.getJumpUpLeft(coord))
-                            .concat(this.getJumpUpRight(coord));
-                    }
-
-                    if (this.player == DOWN_PLAYER || cell.king) {
-                        jumps = jumps
-                            .concat(this.getJumpDownLeft(coord))
-                            .concat(this.getJumpDownRight(coord));
-                    }
-
-                    if (jumps.length > 0) {
-                        return true;
-                    }
-                }
-
-            }
-        }
-
-        return false;
-    }
-
-    // assuming move has already affected the game state,
-    // is it possible for the moved piece to jump again?
-    jumpAgainPossible(move) {
-        var moves = this.getPossibleMoves(move.coordEnd);
-
-        for (var i = 0; i < moves.length; i++) {
-            var move = moves[i];
-
-            if (move.jumpOver != undefined) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    // todo make elegant and dedup
-    getPossibleMoves(coord) {
-        if (this.gameOver != undefined) {
-            return [];
-        }
-
-        if (!this.validPieceToMove(coord)) {
-            return [];
-        }
-
-        if (this.pieceMustPerformJump != undefined &&
-            !this.pieceMustPerformJump.equals(coord)) {
-            return [];
-        }
-
-        var jumpPossible = this.availableJump();
-
-        var cell = this.matrix[coord.row][coord.col];
-
-        var moves = [];
-
-        if (this.player == UP_PLAYER || cell.king) {
-            moves = moves
-                .concat(this.getJumpUpLeft(coord))
-                .concat(this.getJumpUpRight(coord));
-        }
-
-        if (this.player == DOWN_PLAYER || cell.king) {
-            moves = moves
-                .concat(this.getJumpDownLeft(coord))
-                .concat(this.getJumpDownRight(coord));
-        }
-
-
-        if (moves.length == 0 && !jumpPossible) {
-
-            if (this.player == UP_PLAYER || cell.king) {
-                moves = moves
-                    .concat(this.getMoveUpLeft(coord))
-                    .concat(this.getMoveUpRight(coord));
-            }
-
-            if (this.player == DOWN_PLAYER || cell.king) {
-                moves = moves
-                    .concat(this.getMoveDownLeft(coord))
-                    .concat(this.getMoveDownRight(coord));
-            }
-        }
-
-        // temporary
-        for (var i = 0; i < moves.length; i++) {
-            assert(this.isMoveValid(moves[i]));
-        }
-
-        return moves;
-
-    }
-
-    // TODO better function name
-    validPieceToMove(coord) {
-        return this.matrix[coord.row][coord.col].player == this.player;
-    }
-
-    // returns a list of PlayerCoordinate objects
-    // TODO: code dedup
-    getInitPosition() {
-        var NUM_ROWS_PER_PLAYER = 3;
-        assert(this.numRows >= NUM_ROWS_PER_PLAYER * 2);
-
-        var pcs = []
-
-        for (var row = 0; row < NUM_ROWS_PER_PLAYER; row++) {
-            var startColumn;
-
-            if (row % 2 == 0) {
-                startColumn = 0;
-            } else {
-                startColumn = 1;
-            }
-
-            for (var col = startColumn; col < this.numCols; col += 2) {
-                var pc =
-                    new PlayerCoordinate(DOWN_PLAYER, new Coordinate(row, col));
-
-                pcs.push(pc);
-            }
-        }
-
-        var firstRow = this.numRows - NUM_ROWS_PER_PLAYER - 1;
-        for (var row = this.numRows - 1; row > firstRow; row--) {
-            var startColumn;
-
-            if (row % 2 == 0) {
-                startColumn = 0;
-            } else {
-                startColumn = 1;
-            }
-
-            for (var col = startColumn; col < this.numCols; col += 2) {
-                var pc =
-                    new PlayerCoordinate(UP_PLAYER, new Coordinate(row, col));
-
-                pcs.push(pc);
-            }
-        }
-
-        return pcs;
-
-    }
-
-
-    // player is either PLAYER_ONE or PLAYER_TWO, and indicates which player has
-    // the next move
-    constructor(player, numRows, numCols) {
-
-        assert(numRows % 2 == 0);
-        assert(numCols % 2 == 0);
         assert(player == PLAYER_ONE || player == PLAYER_TWO);
-
-        this.numRows = numRows;
-        this.numCols = numCols;
-
-        // if defined, this.pieceMustPerformJump is the coordinate
-        // for the piece that must perform a jump this turn.
-        // this only happens as one step in a multi jump
-        this.pieceMustPerformJump = undefined;
 
         this.matrix = new Array(this.numRows);
         for (var row = 0; row < this.numRows; row++) {
             this.matrix[row] = new Array(this.numCols);
             for (var col = 0; col < this.numCols; col++) {
-                this.matrix[row][col] = new Cell(EMPTY, false);
+                this.matrix[row][col] = initPosition[row][col];
             }
         }
 
-        // TODO Document
-        var initPosition = this.getInitPosition();
-        for (var i = 0; i < initPosition.length; i++) {
-            var pc = initPosition[i];
-            this.matrix[pc.coord.row][pc.coord.col].player = pc.player;
-        }
-
-        // this.player always equals the player (either PLAYER_ONE or
-        // PLAYER_TWO) who has the next move.
         this.player = player;
 
-        // If the game is over, then this.gameOver equals a GameOver object
-        // that describes the properties of the conclusion of the game
-        // If the game is not over, then this.gameOver is undefined.
         this.gameOver = undefined;
     }
 
     deepCopy() {
-        var newGame = new Checkers(this.player, this.numRows, this.numCols);
-
-        for (var row = 0; row < this.numRows; row++) {
-            for (var col = 0; col < this.numCols; col++) {
-                newGame.matrix[row][col] = this.matrix[row][col].deepCopy();
-            }
-        }
-
-        // Coordinates are immutable
-        newGame.pieceMustPerformJump = this.pieceMustPerformJump;
-
-
-        // We do not need to make a deepCopy of this.gameOver
-        // because this.gameOver is immutable
+        var newGame = new Checkers(this.player, this.matrix);
         newGame.gameOver = this.gameOver;
-
         return newGame;
     }
 
-    // todo coord
-    getCell(row, col) {
+    getSqaure(row, col) {
         if (!(row >= 0 && row < this.numRows &&
                col >= 0 && col < this.numCols)) {
-            return OOB_CELL;
+            return undefined;
         } else {
             return this.matrix[row][col];
         }
     }
 
-    // TODO
     isMoveValid(move) {
-        var [beginRow, beginCol] = [move.coordBegin.row, move.coordBegin.col];
-        if (this.getCell(beginRow, beginCol).player != move.player) {
-            return false;
-        }
-
-        var [endRow, endCol] = [move.coordEnd.row, move.coordEnd.col];
-        if (this.getCell(endRow, endCol).player != EMPTY) {
-            return false;
-        }
-
-        if (move.player == UP_PLAYER && !move.king) {
-
-            if (move.jumpOver != undefined) {
-
-                if (endRow != beginRow - 2) {
-                    return false;
-                }
-
-                if (endCol != beginCol - 2 &&
-                    endCol != beginCol + 2) {
-                    return false;
-                }
-
-                var [jumpRow, jumpCol] = [move.jumpOver.row, move.jumpOver.col];
-                var opponent = Checkers.getOpponent(this.player);
-
-                if (this.getCell(jumpRow, jumpCol).player != opponent) {
-                    return false;
-                }
-
-            } else {
-                if (endRow != beginRow - 1) {
-                    return false;
-                }
-
-                if (endCol != beginCol - 1 &&
-                    endCol != beginCol + 1) {
-                    return false;
-                }
-            }
-        } else if (move.player == DOWN_PLAYER && !move.king) {
-            if (move.jumpOver != undefined) {
-
-                if (endRow != beginRow + 2) {
-                    return false;
-                }
-
-                if (endCol != beginCol - 2 &&
-                    endCol != beginCol + 2) {
-                    return false;
-                }
-
-                var [jumpRow, jumpCol] = [move.jumpOver.row, move.jumpOver.col];
-                var opponent = Checkers.getOpponent(this.player);
-
-                if (this.getCell(jumpRow, jumpCol).player != opponent) {
-                    return false;
-                }
-
-            } else {
-                if (endRow != beginRow + 1) {
-                    return false;
-                }
-
-                if (endCol != beginCol - 1 &&
-                    endCol != beginCol + 1) {
-                    return false;
-                }
-            }
-        } else if (move.king) {
-            if (move.jumpOver != undefined) {
-
-                if (endRow != beginRow + 2 && endRow != beginRow - 2) {
-                    return false;
-                }
-
-                if (endCol != beginCol - 2 &&
-                    endCol != beginCol + 2) {
-                    return false;
-                }
-
-                var [jumpRow, jumpCol] = [move.jumpOver.row, move.jumpOver.col];
-                var opponent = Checkers.getOpponent(this.player);
-
-                if (this.getCell(jumpRow, jumpCol).player != opponent) {
-                    return false;
-                }
-
-            } else {
-                if (endRow != beginRow + 1 && endRow != beginRow - 1 ) {
-                    return false;
-                }
-
-                if (endCol != beginCol - 1 &&
-                    endCol != beginCol + 1) {
-                    return false;
-                }
-            }
-        } else {
-            assert(false);
-        }
-
-        return true;
-
+        return false;
     }
 
-    // assumes move is valid
     makeMove(move) {
         assert(this.isMoveValid(move));
-
-        var [beginRow, beginCol] = [move.coordBegin.row, move.coordBegin.col];
-        var [endRow, endCol] = [move.coordEnd.row, move.coordEnd.col];
-
-        var endCell = this.matrix[endRow][endCol];
-        var beginCell = this.matrix[beginRow][beginCol];
-
-        endCell.player = beginCell.player;
-        endCell.king = beginCell.king;
-
-        beginCell.player = EMPTY;
-
-        if (move.jumpOver != undefined) {
-            var [row, col] = [move.jumpOver.row, move.jumpOver.col];
-            this.matrix[row][col].player = EMPTY;
-        }
-
-        if ((this.player == UP_PLAYER && endRow == 0) || (
-             this.player == DOWN_PLAYER && endRow == this.numRows - 1)) {
-            endCell.king = true;
-        }
-
-        this.checkGameOver();
-
-        if (move.jumpOver != undefined && this.jumpAgainPossible(move)) {
-            this.pieceMustPerformJump = move.coordEnd;
-        } else {
-            this.pieceMustPerformJump = undefined;
-            this.player = Checkers.getOpponent(this.player);
-        }
-
-        return new Move(
-            move.coordBegin,
-            move.coordEnd,
-            move.jumpOver,
-            move.player,
-            endCell.king,
-            this.gameOver);
     }
 
-
-    countPieces(player) {
-        var count = 0;
-
-        for (var row = 0; row < this.numRows; row++) {
-            for (var col = 0; col < this.numCols; col++) {
-                var piece = this.matrix[row][col];
-                if (piece.player == player) {
-                    count += 1;
-                }
-            }
-        }
-
-        return count;
-    }
-
-    countKingPieces(player) {
-        var count = 0;
-
-        for (var row = 0; row < this.numRows; row++) {
-            for (var col = 0; col < this.numCols; col++) {
-                var piece = this.matrix[row][col];
-                if (piece.player == player && piece.king) {
-                    count += 1;
-                }
-            }
-        }
-
-        return count;
-    }
-
-    // TODO
     checkGameOver() {
-        if (this.countPieces(PLAYER_ONE) == 0) {
-            this.gameOver = new GameOver(PLAYER_TWO);
-        } else if (this.countPieces(PLAYER_TWO) == 0) {
-            this.gameOver = new GameOver(PLAYER_ONE);
-        }
+
     }
 
 }
@@ -1011,7 +541,7 @@ function makeAiMove(game) {
          
 var cell_size = 50;
 
-var GAME = new Checkers(FIRST_PLAYER, NUM_ROWS, NUM_COLS);
+var GAME = new Chess(FIRST_PLAYER);
 
 // Global variable to hold the Viz class
 var VIZ = new Viz("#board", NUM_ROWS, NUM_COLS, cell_size);
