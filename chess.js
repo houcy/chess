@@ -216,7 +216,7 @@ class Chess {
 
     }
 
-    // assuming there is a pawn at coord, is it in its homerow
+    // assuming there is a pawn at coord, is it in its homerow?
     pawnHomeRow(coord) {
         var piece = this.getSqaure(coord);
 
@@ -232,10 +232,46 @@ class Chess {
         }
     }
 
+    getPossibleMovesPawn(coord) {
+        var piece = this.getSqaure(coord);
+
+        assert(
+            piece != EMPTY &&
+            piece != undefined &&
+            piece.type == PAWN &&
+            piece.player == this.player);
+
+        var dr;
+
+        if (this.player == UP_PLAYER) {
+            dr = -1;
+        } else if (this.player == DOWN_PLAYER) {
+            dr = 1;
+        } else {
+            assert(false);
+        }
+
+        var homeRow = this.pawnHomeRow(coord);
+
+        // move forward one
+        coord.row += dr;
+        if (this.getSqaure(coord) == EMPTY) {
+            moves.push(coord.deepCopy());
+
+            // move forward two
+            coord.row += dr;
+            if (homeRow && this.getSqaure(coord) == EMPTY) {
+                moves.push(coord.deepCopy());
+            }
+        }
+    }
+
     getPossibleMoves(coord) {
         var piece = this.getSqaure(coord);
 
-        if (piece == EMPTY) {
+        if (piece == EMPTY ||
+            piece == undefined ||
+            piece.player != this.player) {
             return [];
         }
 
@@ -243,28 +279,7 @@ class Chess {
 
         // TODO, pawn captures, and set game state for en passant
         if (piece.type == PAWN) {
-            var dr;
-            if (this.player == UP_PLAYER) {
-                dr = -1;
-            } else if (this.player == DOWN_PLAYER) {
-                dr = 1;
-            } else {
-                assert(false);
-            }
-
-            var homeRow = this.pawnHomeRow(coord);
-
-            // move forward one
-            coord.row += dr;
-            if (this.getSqaure(coord) == EMPTY) {
-                moves.push(coord.deepCopy());
-
-                // move forward two
-                coord.row += dr;
-                if (homeRow && this.getSqaure(coord) == EMPTY) {
-                    moves.push(coord.deepCopy());
-                }
-            }
+            return getPossibleMovesPawn(coord);
         }
 
         return moves;
