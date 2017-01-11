@@ -319,6 +319,8 @@ class Chess {
         this.matrix[move.begin.row][move.begin.col] = EMPTY;
         this.matrix[move.end.row][move.end.col] = move.movePiece;
 
+        this.player = this.getOpponent();
+
         this.checkGameOver();
 
         return new Move(
