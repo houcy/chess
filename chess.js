@@ -11,8 +11,6 @@ CAPTURE_DELAY = 700;
 
 MIN_MAX_DEPTH = 7;
 
-EMPTY = 0;
-
 PLAYER_ONE = 1;
 PLAYER_ONE_FILENAME = "player-1.png";
 PLAYER_ONE_KING_FILENAME = "player-1-king.png";
@@ -57,19 +55,13 @@ class Coordinate {
     }
 
     equals(coord) {
-        return this.row == coord.row && this.col == coord.col;d
+        return
+            this.row == coord.row &&
+            this.col == coord.col;
     }
 
     deepCopy() {
         return new Coordinate(this.row, this.col);
-    }
-}
-
-class PlayerCoordinate {
-    constructor(player, coord) {
-        this.player = player;
-        this.coord = coord;
-        Object.freeze(this);
     }
 }
 
@@ -79,7 +71,15 @@ class Piece {
         this.player = player;
         Object.freeze(this);
     }
+
+    equals(piece) {
+        return
+            this.type == piece.type &&
+            this.player == piece.player;
+    }
 }
+
+EMPTY = new Piece(undefined, undefined);
 
 var INIT_POSITION = [
     [new Piece(ROOK, BLACK), new Piece(KNIGHT, BLACK), new Piece(BISHOP, BLACK), new Piece(QUEEN, BLACK), new Piece(KING, BLACK), new Piece(BISHOP, BLACK), new Piece(KNIGHT, BLACK), new Piece(ROOK, BLACK)],
@@ -105,6 +105,16 @@ class Move {
         this.gameOver = gameOver;
         Object.freeze(this);
     }
+
+    equals(move) {
+        return
+            this.begin.equals(move.begin) &&
+            this.end.equals(move.end) &&
+            this.movePiece.equals(move.movePiece) &&
+            this.capturePiece.equals(move.capturePiece) &&
+            this.gameOver.equals(move.gameOver);
+ 
+    }
 }
 
 /*******************************************************************************
@@ -113,28 +123,25 @@ class Move {
 // GameOver objects store information about the end of the game.
 class GameOver {
 
-    // There are two fields in a GameOver object:
-    //      1. this.victor
-    //      2. this.victoryCells
-    //
-    // this.victor
-    // ===========
-    // this.victor is equal to one of the following:
-    //      (A) undefined
-    //      (B) PLAYER_ONE
-    //      (C) PLAYER_TWO
-    //
-    // if this.victor == undefined, then that indicates the game ended in a draw
-    // if this.victor == PLAYER_ONE, then that indicates PLAYER_ONE won the game
-    // if this.victor == PLAYER_TWO, then that indicates PLAYER_TWO won the game
-    //
-    constructor(victor) {
+    // TODO: document
+    constructor(gameEnded, draw, victor) {
+        this.gameEnded = gameEnded;
+        this.draw = draw;
         this.victor = victor;
 
         // Make GameOver immutable
         Object.freeze(this);
     }
+
+    equals(gameOver) {
+        return
+            this.gameEnded == gameOver.gameEnded &&
+            this.draw == gameOver.draw &&
+            this.victor == gameOver.victor;
+    }
 }
+
+GAME_NOT_OVER = new GameOver(false, undefined, undefined);
 
 /*******************************************************************************
  * Chess class
@@ -188,6 +195,15 @@ class Chess {
     }
 
     isMoveValid(move) {
+        var possibleMoves = this.getPossibleMoves(move.begin);
+
+        for (var i = 0; i < possibleMoves.length; i++) {
+            var possibleMove = possibleMoves[i];
+            if (move.equals(possibleMove)) {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -261,14 +277,14 @@ class Chess {
         coord.row += dr;
         if (this.getSqaure(coord) == EMPTY) {
             var end = coord.deepCopy();
-            var move = new Move(begin, end, piece, undefined, undefined);
+            var move = new Move(begin, end, piece, EMPTY, GAME_NOT_OVER);
             moves.push(move);
 
             // move forward two
             coord.row += dr;
             if (homeRow && this.getSqaure(coord) == EMPTY) {
                 var end = coord.deepCopy();
-                var move = new Move(begin, end, piece, undefined, undefined);
+                var move = new Move(begin, end, piece, EMPTY, GAME_NOT_OVER);
                 moves.push(move);
             }
         }
