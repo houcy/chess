@@ -253,6 +253,23 @@ class Chess {
             .concat(this.consecutiveEmptySquares(coord, piece, 1, 1));        
     }
 
+    getPossibleMovesRook(coord) {
+        var piece = this.getSqaure(coord);
+
+        assert(
+            piece != EMPTY &&
+            piece != undefined &&
+            piece.type == ROOK &&
+            piece.player == this.player);
+
+        var coords = [];
+
+        return this.consecutiveEmptySquares(coord, piece, -1, 0)
+            .concat(this.consecutiveEmptySquares(coord, piece, 1, 0))
+            .concat(this.consecutiveEmptySquares(coord, piece, 0, -1))
+            .concat(this.consecutiveEmptySquares(coord, piece, 0, 1));        
+    }
+
     // assuming there is a pawn at coord, is it in its homerow?
     pawnHomeRow(coord) {
         var piece = this.getSqaure(coord);
@@ -331,6 +348,8 @@ class Chess {
             return this.getPossibleMovesPawn(coord);
         } if (piece.type == BISHOP) {
             return this.getPossibleMovesBishop(coord);
+        } if (piece.type == ROOK) {
+            return this.getPossibleMovesRook(coord);
         }
 
         return moves;
