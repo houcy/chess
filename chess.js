@@ -344,39 +344,51 @@ class Viz {
         return "<img src='" + filename + "' width='" + this.cell_size + "'>";
     }
 
-    getImgTag(move) {
-
-        var filename = undefined;
-
-        if (move.player == PLAYER_ONE) {
-            if (move.king) {
-                filename = PLAYER_ONE_KING_FILENAME;
-            } else {
-                filename = PLAYER_ONE_FILENAME;
-            }
-        } else if (move.player == PLAYER_TWO) {
-            if (move.king) {
-                filename = PLAYER_TWO_KING_FILENAME;
-            } else {
-                filename = PLAYER_TWO_FILENAME;
-            }
+    getFilename(piece) {
+        var color;
+        if (piece.player == BLACK) {
+            color = "black";
         } else {
-            assert(false);
+            color = "white";
         }
 
+        var pieceStr;
+        if (piece.pieceId == PAWN) {
+            pieceStr = "pawn";
+        } else if (piece.pieceId == ROOK) {
+            pieceStr = "rook";
+        } else if (piece.pieceId == KNIGHT) {
+            pieceStr = "knight";
+        } else if (piece.pieceId == BISHOP) {
+            pieceStr = "bishop";
+        } else if (piece.pieceId == QUEEN) {
+            pieceStr = "queen";
+        } else if (piece.pieceId == KING) {
+            pieceStr = "king";
+        }
+
+        return color + "-" + pieceStr + ".svg";
+    }
+
+    getImgTag(piece) {
+        var filename = this.getFilename(piece);
         return "<img src='" + filename + "' width='" + this.cell_size + "'>";
     }
 
+
     // todo dedup
-    drawInitPosition(playerCoords) {
+    drawInitPosition(matrix) {
 
-        for (var i = 0; i < playerCoords.length; i++) {
-            var pc = playerCoords[i];
+        for (var row = 0; row < this.numRows; row++) {
+            for (var col = 0; col < this.numCols; col++) {
 
-            var cellId = Viz.getCellId(pc.coord.row, pc.coord.col);
-            var imgTag = this.getImgTag(pc);
-
-            $("#" + cellId).append(imgTag);
+                var piece = matrix[row][col];
+                if (piece != EMPTY) {
+                    var cellId = Viz.getCellId(row, col);
+                    var imgTag = this.getImgTag(piece);
+                    $("#" + cellId).append(imgTag);
+                }            
+            }
         }
     }
 
@@ -545,85 +557,15 @@ var GAME = new Chess(FIRST_PLAYER);
 
 // Global variable to hold the Viz class
 var VIZ = new Viz("#board", NUM_ROWS, NUM_COLS, cell_size);
-VIZ.drawInitPosition(GAME.getInitPosition());
+VIZ.drawInitPosition(GAME.matrix);
 
 if (FIRST_PLAYER == COMPUTER_PLAYER) {
     move = makeAiMove(GAME);
     VIZ.drawMove(move);
 }
 
-var SELECT_PIECE_CELL = undefined;
-var POSSIBLE_MOVES = undefined;
 
 function cellClick(row, col) {
-
-    // Ignores invalid moves from the human
-    //assert(GAME.player == HUMAN_PLAYER);
-
-    var coord = new Coordinate(row, col); 
-
-    var madeMove = false;
-    if (POSSIBLE_MOVES != undefined) {
-        for (var i = 0; i < POSSIBLE_MOVES.length; i++) {
-            var move = POSSIBLE_MOVES[i];
-            if (move.coordEnd.equals(coord)) {
-                var resultMove = GAME.makeMove(move);
-                VIZ.drawMove(resultMove, POSSIBLE_MOVES);
-
-                if (resultMove.gameOver != undefined) {
-                    var color = PLAYER_COLOR[resultMove.gameOver.victor];
-                    alert("Player " + color + " wins!");
-                } else {
-
-                    if (GAME.pieceMustPerformJump == undefined) {
-
-                        function doAiMove() {
-                            move = makeAiMove(GAME);
-                            VIZ.drawMove(move, undefined);
-
-                            if (GAME.pieceMustPerformJump != undefined) {
-                                window.setTimeout(doAiMove, 300);
-                            }
-                        }
-
-                        window.setTimeout(doAiMove, 300);
-
-                    }
-                }
-
-                madeMove = true;
-            }
-        }
-    }
-
-    if (madeMove) {
-        POSSIBLE_MOVES = undefined;
-        SELECT_PIECE_CELL = undefined;
-    }
-
-
-    var possibleMoves = GAME.getPossibleMoves(coord);
-
-    if (possibleMoves.length > 0) {
-
-        if (SELECT_PIECE_CELL != undefined) {
-            VIZ.undoDrawSelectPiece(SELECT_PIECE_CELL);
-            
-            for (var i = 0; i < POSSIBLE_MOVES.length; i++) {
-                VIZ.undoDrawSuggestion(POSSIBLE_MOVES[i]);
-            }
-        }
-        
-        SELECT_PIECE_CELL = coord;
-        POSSIBLE_MOVES = possibleMoves;
-        VIZ.drawSelectPiece(SELECT_PIECE_CELL);
-
-        for (var i = 0; i < POSSIBLE_MOVES.length; i++) {
-            VIZ.drawSuggestion(POSSIBLE_MOVES[i]);
-        }
-    } else {
-        // ?
-    }
 
 }
 
