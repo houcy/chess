@@ -276,7 +276,11 @@ class Chess {
         return moves;
     }
 
-    getPossibleMoves(coord) {
+    getPossibleMoves(origCoord) {
+
+        // copy so we don't destroy orig
+        var coord = origCoord.deepCopy();
+
         var piece = this.getSqaure(coord);
 
         if (piece == EMPTY ||
@@ -510,22 +514,14 @@ class Viz {
         $("#" + cellId).removeClass("selected");
     }
 
-    drawSuggestion(move) {
-        var row = move.coordEnd.row;
-        var col = move.coordEnd.col;
-        var cellId = Viz.getCellId(row, col);
-        var suggestionTag = this.getSuggestionTag(move.player);
-
-        $("#" + cellId + " img").remove();
-        $("#" + cellId).append(suggestionTag);
+    drawSuggestion(coord) {
+        var cellId = Viz.getCellId(coord.row, coord.col);
+        $("#" + cellId).addClass("suggested");
     }
 
-    undoDrawSuggestion(move) {
-        var row = move.coordEnd.row;
-        var col = move.coordEnd.col;
-        var cellId = Viz.getCellId(row, col);
-
-        $("#" + cellId + " img").remove();
+    undoDrawSuggestion(coord) {
+        var cellId = Viz.getCellId(coord.row, coord.col);
+        $("#" + cellId).removeClass("suggested");
     }
 
     // assumes move is valid
@@ -538,11 +534,11 @@ class Viz {
             }
         }
 
-        var [beginRow, beginCol] = [move.coordBegin.row, move.coordBegin.col];
-        var [endRow, endCol] = [move.coordEnd.row, move.coordEnd.col];
+        var [beginRow, beginCol] = [move.begin.row, move.begin.col];
+        var [endRow, endCol] = [move.end.row, move.end.col];
 
-        if (move.jumpOver != undefined) {
-            var [row, col] = [move.jumpOver.row, move.jumpOver.col];
+        if (move.capturePiece != undefined) {
+            var [row, col] = [move.end.row, move.end.col];
 
             var cellId = Viz.getCellId(row, col);
             $("#" + cellId + " img").remove();
@@ -556,7 +552,7 @@ class Viz {
 
         // Add the piece
         var cellId = Viz.getCellId(endRow, endCol);
-        var imgTag = this.getImgTag(move);
+        var imgTag = this.getImgTag(move.movePiece);
         $("#" + cellId).append(imgTag);
     }
 }
@@ -667,21 +663,91 @@ var GAME = new Chess(FIRST_PLAYER);
 var VIZ = new Viz("#board", NUM_ROWS, NUM_COLS, cell_size);
 VIZ.drawInitPosition(GAME.matrix);
 
+/*
 if (FIRST_PLAYER == COMPUTER_PLAYER) {
     move = makeAiMove(GAME);
     VIZ.drawMove(move);
-}
+}*/
 
+var SELECT_PIECE_CELL = undefined;
+var POSSIBLE_MOVES = undefined;
 
 function cellClick(row, col) {
-    if (GAME.player != HUMAN_PLAYER) {
+    /*if (GAME.player != HUMAN_PLAYER) {
         return;
+    }*/
+
+    var coord = new Coordinate(row, col); 
+
+    var madeMove = false;
+    if (POSSIBLE_MOVES != undefined) {
+        for (var i = 0; i < POSSIBLE_MOVES.length; i++) {
+            var move = POSSIBLE_MOVES[i];
+            if (move.end.equals(coord)) {
+                var resultMove = GAME.makeMove(move);
+                VIZ.drawMove(resultMove, POSSIBLE_MOVES);
+
+                if (resultMove.gameOver != undefined) {
+                    var color = PLAYER_COLOR[resultMove.gameOver.victor];
+                    alert("Player " + color + " wins!");
+                } else {
+
+                    /*function doAiMove() {
+                        move = makeAiMove(GAME);
+                        VIZ.drawMove(move, undefined);
+                    }
+
+                    window.setTimeout(doAiMove, 300);
+                    */
+
+                    /*
+                    if (GAME.pieceMustPerformJump == undefined) {
+
+                        function doAiMove() {
+                            move = makeAiMove(GAME);
+                            VIZ.drawMove(move, undefined);
+
+                            if (GAME.pieceMustPerformJump != undefined) {
+                                window.setTimeout(doAiMove, 300);
+                            }
+                        }
+
+                        window.setTimeout(doAiMove, 300);
+
+                    }
+                    */
+                }
+
+                madeMove = true;
+            }
+        }
     }
 
-    var coord = new Coordinate(row, col);
+    if (madeMove) {
+        POSSIBLE_MOVES = undefined;
+        SELECT_PIECE_CELL = undefined;
+    }
 
-    console.log(GAME.getPossibleMoves(coord));
+    var possibleMoves = GAME.getPossibleMoves(coord);
 
+    if (possibleMoves.length > 0) {
 
+        if (SELECT_PIECE_CELL != undefined) {
+            VIZ.undoDrawSelectPiece(SELECT_PIECE_CELL);
+            
+            // But doesn't this operate off of the new possibleMoves?
+            for (var i = 0; i < POSSIBLE_MOVES.length; i++) {
+                VIZ.undoDrawSuggestion(POSSIBLE_MOVES[i].end);
+            }
+        }
+        
+        SELECT_PIECE_CELL = coord;
+        POSSIBLE_MOVES = possibleMoves;
+        VIZ.drawSelectPiece(SELECT_PIECE_CELL);
+
+        for (var i = 0; i < POSSIBLE_MOVES.length; i++) {
+            VIZ.drawSuggestion(POSSIBLE_MOVES[i].end);
+        }
+    }
 }
 

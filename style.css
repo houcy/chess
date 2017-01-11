@@ -14,11 +14,16 @@
 .cell {
     height: 100px;
     width: 100px;
+    margin-top: 1px;
+    margin-left: 1px;
     float: left; 
     cursor: pointer;
 }
 
 .selected {
+    box-shadow: 0px 0px 0px 2px red inset;
+}
+
+.suggested {
     box-shadow: 0px 0px 0px 2px black inset;
-    background: #F7DC6F;
 }
