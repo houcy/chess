@@ -95,11 +95,12 @@ Object.freeze(INIT_POSITION);
  * Move is the interface between Chess and Viz TODO better description
  ******************************************************************************/
 class Move {
-    constructor(begin, end, movePiece, capturePiece, gameOver) {
+    constructor(begin, end, movePiece, capturePiece, check, gameOver) {
         this.begin = begin;
         this.end = end;
         this.movePiece = movePiece;
         this.capturePiece = capturePiece;
+        this.check = check;
         this.gameOver = gameOver;
         Object.freeze(this);
     }
@@ -206,6 +207,14 @@ class Chess {
     }
 
 
+    // returns true iff piece moving to end puts the king in check
+    isCheck(begin, end, movePiece) {
+        var game = this.deepCopy();
+        var capturePiece = game.matrix[end.row][end.col];
+        var move = new Move(begin, end, movepiece, capturePiece, false, GAME_NOT_OVER);
+        var resultMove = game.makeMove(move);
+    }
+
     // Returns an array of coordinates (excluding coord), that are empty
     // and along the direction of dr, dc.
     //
@@ -218,9 +227,10 @@ class Chess {
         end.row += dr;
         end.col += dc;
 
+        // TODO: gameover undefined?
         while(this.getSqaure(end) == EMPTY) {
             var endCopy = end.deepCopy();
-            var move = new Move(begin, endCopy, movepiece, EMPTY, GAME_NOT_OVER);
+            var move = new Move(begin, endCopy, movepiece, EMPTY, undefined, GAME_NOT_OVER);
             moves.push(move);
             end.row += dr;
             end.col += dc;       
@@ -229,7 +239,7 @@ class Chess {
         var lastSquare = this.getSqaure(end);
         if (lastSquare != undefined && lastSquare.player == this.getOpponent()) {
             var endCopy = end.deepCopy();
-            var move = new Move(begin, endCopy, movepiece, lastSquare, GAME_NOT_OVER);
+            var move = new Move(begin, endCopy, movepiece, lastSquare, undefined, GAME_NOT_OVER);
             moves.push(move);
         }
 
@@ -318,7 +328,7 @@ class Chess {
             var endPiece = this.getSqaure(end);
             if (endPiece != undefined &&
                 (endPiece == EMPTY || endPiece.player == this.getOpponent())) {
-                var move = new Move(begin, end, piece, endPiece, GAME_NOT_OVER);
+                var move = new Move(begin, end, piece, endPiece, false, GAME_NOT_OVER);
                 moves.push(move);
             }
         }
@@ -354,7 +364,7 @@ class Chess {
             var endPiece = this.getSqaure(end);
             if (endPiece != undefined &&
                 (endPiece == EMPTY || endPiece.player == this.getOpponent())) {
-                var move = new Move(begin, end, piece, endPiece, GAME_NOT_OVER);
+                var move = new Move(begin, end, piece, endPiece, false, GAME_NOT_OVER);
                 moves.push(move);
             }
         }
@@ -407,14 +417,14 @@ class Chess {
         coord.row += dr;
         if (this.getSqaure(coord) == EMPTY) {
             var end = coord.deepCopy();
-            var move = new Move(begin, end, piece, EMPTY, GAME_NOT_OVER);
+            var move = new Move(begin, end, piece, EMPTY, false, GAME_NOT_OVER);
             moves.push(move);
 
             // move forward two
             coord.row += dr;
             if (homeRow && this.getSqaure(coord) == EMPTY) {
                 var end = coord.deepCopy();
-                var move = new Move(begin, end, piece, EMPTY, GAME_NOT_OVER);
+                var move = new Move(begin, end, piece, EMPTY, false, GAME_NOT_OVER);
                 moves.push(move);
             }
         }
@@ -457,11 +467,32 @@ class Chess {
         return moves;
     }
 
+    isKingInCheck() {
+
+        for (var row = 0; row < this.numRows; row++) {
+            for (var col = 0; col < this.numCols; col++) {
+                var coord = new Coordinate(row, col);
+                var moves = this.getPossibleMoves(coord);
+
+                for (var i = 0; i < moves.length; i++) {
+                    var move = moves[i];
+                    if (move.capturePiece.type == KING) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     makeMove(move) {
         assert(this.isMoveValid(move));
 
         this.matrix[move.begin.row][move.begin.col] = EMPTY;
         this.matrix[move.end.row][move.end.col] = move.movePiece;
+
+        var check = this.isKingInCheck();
 
         this.player = this.getOpponent();
 
@@ -472,6 +503,7 @@ class Chess {
             move.end,
             move.movePiece,
             move.capturePiece,
+            check,
             this.gameOver);
     }
 
@@ -858,6 +890,10 @@ function cellClick(row, col) {
             if (move.end.equals(coord)) {
                 var resultMove = GAME.makeMove(move);
                 VIZ.drawMove(resultMove, POSSIBLE_MOVES);
+
+                if (resultMove.check) {
+                    alert("Check!");
+                }
 
                 if (resultMove.gameOver.gameEnded) {
                     var color = PLAYER_COLOR[resultMove.gameOver.victor];
