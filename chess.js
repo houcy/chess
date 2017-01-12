@@ -954,8 +954,56 @@ function minMax(
     beta=Number.MAX_SAFE_INTEGER) {
 
     if (node.isLeaf() || depth == 0) {
-        return [node.getMove(), node.getScore()];
+        return node.getScore();
     }
+
+    // If the node wants to maximize its score:
+    else if (maximizingPlayer) {
+        var bestScore = Number.MIN_SAFE_INTEGER;
+
+        // find the child with the highest score
+        var children = node.getChildren();
+        for (var i = 0; i < children.length; i++) {
+            var child = children[i];
+            var maximize = child.getMaximize();
+            var childScore = minMax(child, depth - 1, maximize, alpha, beta);
+            bestScore = Math.max(childScore, bestScore);
+            alpha = Math.max(alpha, bestScore);
+
+            if (beta <= alpha) {
+                break;
+            }
+
+        }
+        return bestScore;
+    }
+
+    // If the node wants to minimize its score:
+    else {
+        var bestScore = Number.MAX_SAFE_INTEGER;
+
+        // find the child with the lowest score
+        var children = node.getChildren();
+        for (var i = 0; i < children.length; i++) {
+            var child = children[i];
+            var maximize = child.getMaximize();
+            var childScore = minMax(child, depth -1, maximize, alpha, beta);
+            bestScore = Math.min(childScore, bestScore);
+            beta = Math.min(beta, bestScore);
+
+            if (beta <= alpha) {
+                break;
+            }
+        }
+        return bestScore;
+    }
+}
+
+function getBestMove(game, maximizingPlayer, depth = MIN_MAX_DEPTH) {
+
+    var node = new Node(game);
+
+    assert(!node.isLeaf());
 
     // If the node wants to maximize its score:
     if (maximizingPlayer) {
@@ -967,20 +1015,14 @@ function minMax(
         for (var i = 0; i < children.length; i++) {
             var child = children[i];
             var maximize = child.getMaximize();
-            var [_, childScore] = minMax(child, depth - 1, maximize, alpha, beta);
+            var childScore = minMax(child, depth - 1, maximize);
             bestScore = Math.max(childScore, bestScore);
-            alpha = Math.max(alpha, bestScore);
 
             if (bestScore == childScore) {
                 bestMove = child.getMove();
             }
-
-            if (beta <= alpha) {
-                //break;
-            }
-
         }
-        return [bestMove, bestScore];
+        return bestMove;
     }
 
     // If the node wants to minimize its score:
@@ -993,19 +1035,14 @@ function minMax(
         for (var i = 0; i < children.length; i++) {
             var child = children[i];
             var maximize = child.getMaximize();
-            var [_, childScore] = minMax(child, depth -1, maximize, alpha, beta);
+            var childScore = minMax(child, depth - 1, maximize);
             bestScore = Math.min(childScore, bestScore);
-            beta = Math.min(beta, bestScore);
 
             if (bestScore == childScore) {
                 bestMove = child.getMove();
             }
-
-            if (beta <= alpha) {
-                //break;
-            }
         }
-        return [bestMove, bestScore];
+        return bestMove;
     }
 }
 
@@ -1018,11 +1055,13 @@ function makeAiMove(game) {
 
     assert(!game.gameOver.gameEnded);
 
-    var node = new Node(game);
+    //var node = new Node(game);
 
     var maximizing = MAXIMIZING_PLAYER == COMPUTER_PLAYER;
 
-    var [bestMove, bestScore] = minMax(node, MIN_MAX_DEPTH, maximizing);
+    var bestMove = getBestMove(game, maximizing);
+
+    console.log(bestMove);
 
     return game.makeMove(bestMove);
 }
