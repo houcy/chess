@@ -9,7 +9,7 @@ NUM_COLS = 8;
 
 CAPTURE_DELAY = 700;
 
-MIN_MAX_DEPTH = 5;
+MIN_MAX_DEPTH = 2;
 
 PLAYER_ONE = 1;
 PLAYER_ONE_FILENAME = "player-1.png";
@@ -1018,7 +1018,7 @@ function makeAiMove(game) {
 
     var maximizing = MAXIMIZING_PLAYER == COMPUTER_PLAYER;
 
-    var [bestMove, _] = minMax(node, MIN_MAX_DEPTH, maximizing);
+    var [bestMove, bestScore] = minMax(node, MIN_MAX_DEPTH, maximizing);
 
     return game.makeMove(bestMove);
 }
