@@ -446,6 +446,24 @@ class Chess {
 
         // move forward one
         coord.row += dr;
+        var diagonalLeft = coord.deepCopy();
+        var diagonalRight = coord.deepCopy();
+        diagonalLeft.col -= 1;
+        diagonalRight.col += 1;
+
+        var dlPiece = this.getSquare(diagonalLeft);
+        var drPiece = this.getSquare(diagonalRight);
+
+        if (dlPiece != undefined && dlPiece.player == this.getOpponent()) {
+            var move = new Move(begin, diagonalLeft, piece, dlPiece, false, GAME_NOT_OVER);
+            moves.push(move);
+        }
+
+        if (drPiece != undefined && drPiece.player == this.getOpponent()) {
+            var move = new Move(begin, diagonalRight, piece, drPiece, false, GAME_NOT_OVER);
+            moves.push(move);
+        }
+
         if (this.getSquare(coord) == EMPTY) {
             var end = coord.deepCopy();
             var move = new Move(begin, end, piece, EMPTY, false, GAME_NOT_OVER);
