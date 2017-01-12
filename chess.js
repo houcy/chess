@@ -89,6 +89,20 @@ var INIT_POSITION = [
     [new Piece(PAWN, WHITE), new Piece(PAWN, WHITE), new Piece(PAWN, WHITE), new Piece(PAWN, WHITE), new Piece(PAWN, WHITE), new Piece(PAWN, WHITE), new Piece(PAWN, WHITE), new Piece(PAWN, WHITE)],
     [new Piece(ROOK, WHITE), new Piece(KNIGHT, WHITE), new Piece(BISHOP, WHITE), new Piece(QUEEN, WHITE), new Piece(KING, WHITE), new Piece(BISHOP, WHITE), new Piece(KNIGHT, WHITE), new Piece(ROOK, WHITE)],
 ]
+
+var INIT_POSITION = [
+    [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+    [EMPTY, EMPTY, EMPTY, new Piece(KING, BLACK), EMPTY, EMPTY, new Piece(BISHOP, BLACK), EMPTY],
+    [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+    [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+    [EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+    [EMPTY, EMPTY, EMPTY, new Piece(QUEEN, WHITE), EMPTY, EMPTY, EMPTY, EMPTY],
+    [EMPTY, new Piece(KING, WHITE), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+    [new Piece(QUEEN, WHITE), EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY, EMPTY],
+
+
+    ]
+
 Object.freeze(INIT_POSITION);
 
 /*******************************************************************************
@@ -175,11 +189,10 @@ class Chess {
 
         this.gameOver = GAME_NOT_OVER;
 
-        this.checkGameOver();
     }
 
     deepCopy() {
-        var newGame = new Checkers(this.player, this.matrix);
+        var newGame = new Chess(this.player, this.matrix);
         newGame.gameOver = this.gameOver;
         return newGame;
     }
@@ -193,17 +206,20 @@ class Chess {
         }
     }
 
+    // Assume the move is in the list of possibleMoves
     isMoveValid(move) {
-        var possibleMoves = this.getPossibleMoves(move.begin);
 
-        for (var i = 0; i < possibleMoves.length; i++) {
-            var possibleMove = possibleMoves[i];
-            if (move.equals(possibleMove)) {
-                return true;
-            }
+        // Make sure it's not putting king in check
+        var gameCopy = this.deepCopy();
+        gameCopy.matrix[move.begin.row][move.begin.col] = EMPTY;
+        gameCopy.matrix[move.end.row][move.end.col] = move.movePiece;
+        gameCopy.player = this.getOpponent();
+
+        if (gameCopy.isOpponentsKingInCheck()) {
+            return false;
         }
 
-        return false;
+        return true;
     }
 
 
@@ -432,7 +448,18 @@ class Chess {
         return moves;
     }
 
-    getPossibleMoves(origCoord) {
+    removeInvalidMoves(moves) {
+        var newMoves = [];
+        for (var i = 0; i < moves.length; i++) {
+            var move = moves[i];
+            if (this.isMoveValid(move)) {
+                newMoves.push(move);
+            }
+        }
+        return newMoves;
+    }
+
+    getPossibleMoves(origCoord, ignoreAbandonment = false) {
 
         // copy so we don't destroy orig
         var coord = origCoord.deepCopy();
@@ -445,34 +472,40 @@ class Chess {
             return [];
         }
 
-        var moves = [];
+        var moves;
 
         // TODO, pawn captures, and set game state for en passant
         if (piece.type == PAWN) {
-            return this.getPossibleMovesPawn(coord);
+            moves = this.getPossibleMovesPawn(coord);
         } else if (piece.type == BISHOP) {
-            return this.getPossibleMovesBishop(coord);
+            moves = this.getPossibleMovesBishop(coord);
         } else if (piece.type == ROOK) {
-            return this.getPossibleMovesRook(coord);
+            moves = this.getPossibleMovesRook(coord);
         } else if (piece.type == QUEEN) {
-            return this.getPossibleMovesQueen(coord);
+            moves = this.getPossibleMovesQueen(coord);
         } else if (piece.type == KNIGHT) {
-            return this.getPossibleMovesKnight(coord);
+            moves = this.getPossibleMovesKnight(coord);
         } else if (piece.type == KING) {
-            return this.getPossibleMovesKing(coord);
+            moves = this.getPossibleMovesKing(coord);
         } else {
             assert(false);
         }
 
-        return moves;
+        if (ignoreAbandonment) {
+            return moves;
+        } else {
+            return this.removeInvalidMoves(moves);  
+        }
     }
 
-    isKingInCheck() {
+    // abandonment is when you abandon your king,
+    // which is only permissible if you're killing another king
+    isOpponentsKingInCheck() {
 
         for (var row = 0; row < this.numRows; row++) {
             for (var col = 0; col < this.numCols; col++) {
                 var coord = new Coordinate(row, col);
-                var moves = this.getPossibleMoves(coord);
+                var moves = this.getPossibleMoves(coord, true);
 
                 for (var i = 0; i < moves.length; i++) {
                     var move = moves[i];
@@ -487,12 +520,11 @@ class Chess {
     }
 
     makeMove(move) {
-        assert(this.isMoveValid(move));
 
         this.matrix[move.begin.row][move.begin.col] = EMPTY;
         this.matrix[move.end.row][move.end.col] = move.movePiece;
 
-        var check = this.isKingInCheck();
+        var check = this.isOpponentsKingInCheck();
 
         this.player = this.getOpponent();
 
@@ -508,7 +540,18 @@ class Chess {
     }
 
     checkGameOver() {
+        
+        for (var row = 0; row < this.numRows; row++) {
+            for (var col = 0; col < this.numCols; col++) {
+                var coord = new Coordinate(row, col);
+                var moves = this.getPossibleMoves(coord, false);
+                if (moves.length > 0) {
+                    return;
+                }
+            }
+        }
 
+        this.gameOver = new GameOver(true, false, this.getOpponent());
     }
 
 }
@@ -891,7 +934,9 @@ function cellClick(row, col) {
                 var resultMove = GAME.makeMove(move);
                 VIZ.drawMove(resultMove, POSSIBLE_MOVES);
 
-                if (resultMove.check) {
+                if (resultMove.gameOver.gameEnded) {
+                    alert("Check mate!");
+                } else if (resultMove.check) {
                     alert("Check!");
                 }
 
