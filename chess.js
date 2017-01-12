@@ -9,7 +9,7 @@ NUM_COLS = 8;
 
 CAPTURE_DELAY = 700;
 
-MIN_MAX_DEPTH = 4;
+MIN_MAX_DEPTH = 3;
 
 PLAYER_ONE = 1;
 PLAYER_ONE_FILENAME = "player-1.png";
@@ -946,8 +946,12 @@ class Viz {
 //    node.getScore()
 //    node.getChildren()
 //    node.getMove()
-function minMax(node, depth, maximizingPlayer,
-    alpha=Number.MIN_SAFE_INTEGER, beta=Number.MAX_SAFE_INTEGER) {
+function minMax(
+    node,
+    depth,
+    maximizingPlayer,
+    alpha=Number.MIN_SAFE_INTEGER,
+    beta=Number.MAX_SAFE_INTEGER) {
 
     if (node.isLeaf() || depth == 0) {
         return [node.getMove(), node.getScore()];
@@ -972,7 +976,7 @@ function minMax(node, depth, maximizingPlayer,
             }
 
             if (beta <= alpha) {
-                break;
+                //break;
             }
 
         }
@@ -998,7 +1002,7 @@ function minMax(node, depth, maximizingPlayer,
             }
 
             if (beta <= alpha) {
-                break;
+                //break;
             }
         }
         return [bestMove, bestScore];
